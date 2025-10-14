@@ -1,6 +1,11 @@
-# Minimal Image & Caption Mock Service
+# n8n Frontend + Proxy Backend
 
-Single-purpose Node.js service exposing exactly one functional endpoint plus a health check.
+This app serves a simple frontend and a single backend proxy endpoint that forwards requests to your n8n Webhook. Secrets remain on the server, and the webhook URL is not exposed to the browser.
+
+## How it works
+- Frontend (static HTML in `public/`) collects form data.
+- Backend (`/api/trigger-n8n`) enriches and forwards the payload to your n8n Webhook URL.
+- Optional shared secret header `x-n8n-secret` can be set to verify the server call in n8n.
 
 ## Endpoints
 
@@ -8,13 +13,13 @@ Single-purpose Node.js service exposing exactly one functional endpoint plus a h
 ```
 GET /health
 ```
-Returns JSON status.
 
-### Form Submission (only accepted formId)
+### Trigger n8n (proxy)
 ```
-POST /form/1bc429ed-c5a2-4783-9dd8-40eaac8a59f1
+POST /api/trigger-n8n
+Content-Type: application/json
 ```
-Body (JSON):
+Body (example):
 ```json
 {
   "accountName": "nia_dhanii",
@@ -22,60 +27,32 @@ Body (JSON):
   "prompt": "Cyber cat on neon hoverboard"
 }
 ```
-Optional: set environment variable `FORM_SHARED_TOKEN` and then include header:
-```
-X-Form-Token: <value>
-```
 
-### Sample curl
-```bash
-curl -X POST http://localhost:3000/form/1bc429ed-c5a2-4783-9dd8-40eaac8a59f1 \
-  -H "Content-Type: application/json" \
-  -d '{"accountName":"nia_dhanii","category":"Lifestyle","prompt":"Cyber cat on neon hoverboard"}'
-```
+Server forwards this payload to the configured n8n webhook and returns n8n's response.
 
-Response (mock example):
-```json
-{
-  "success": true,
-  "jobId": "<uuid>",
-  "formId": "1bc429ed-c5a2-4783-9dd8-40eaac8a59f1",
-  "timestamp": "2025-01-01T00:00:00.000Z",
-  "message": "Image generated successfully",
-  "data": {
-    "accountName": "nia_dhanii",
-    "category": "Lifestyle",
-    "prompt": "Cyber cat on neon hoverboard",
-    "type": "image",
-    "result": {
-      "image": {"url":"https://via.placeholder.com/..."},
-      "caption": {"text":"A creative interpretation..."}
-    },
-    "metadata": {"jobId": "<uuid>", "processedAt": "2025-01-01T00:00:00.000Z"}
-  }
-}
-```
+## Environment variables
+Set one of the following:
+- `N8N_FULL_WEBHOOK_URL` (e.g., https://n8n.example.com/webhook/my-workflow)
 
-## Install & Run
+Or both of:
+- `N8N_WEBHOOK_BASE_URL` (e.g., https://n8n.example.com/webhook)
+- `N8N_WEBHOOK_PATH` (e.g., my-workflow)
+
+Optional:
+- `N8N_SECRET` (shared secret added as header `x-n8n-secret`)
+- `PORT` (default 3000)
+
+## Run locally
 ```bash
 npm install
 npm start
 ```
-Dev (auto-reload if you keep nodemon):
-```bash
-npm run dev
-```
 
-## Environment (optional)
-```
-FORM_SHARED_TOKEN=supersecret123
-PORT=3000
-```
+Then open http://localhost:3000 and submit the form.
 
 ## Notes
-- Other previous endpoints, web UI, and integration helpers were removed.
-- Public folder can be deleted if not needed (still present if you want to serve a static page, but unused by code).
-- Dependencies trimmed to only express + uuid.
+- The server uses a single route `/api/trigger-n8n` based on the Next.js example in `nextjs_n_8_n_integration.jsx` (adapted to Express here).
+- Old mock endpoints and unused files were removed to keep the code minimal and focused.
 
 ## License
 ISC

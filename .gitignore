@@ -7,7 +7,7 @@
 
 # Dependency directories
 node_modules/
-npm-debug.log*
+.env
 yarn-debug.log*
 yarn-error.log*
 
@@ -15,7 +15,7 @@ yarn-error.log*
 pids
 *.pid
 *.seed
-*.pid.lock
+node_modules/
 
 # Coverage directory used by tools like istanbul
 coverage/
@@ -85,7 +85,7 @@ Thumbs.db
 
 # Logs
 logs
-*.log
+.DS_Store
 
 # Temporary files
 tmp/
