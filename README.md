@@ -32,11 +32,11 @@ Server forwards this payload to the configured n8n webhook and returns n8n's res
 
 ## Environment variables
 Set one of the following:
-- `N8N_FULL_WEBHOOK_URL` (e.g., https://n8n.example.com/webhook/my-workflow)
+- `N8N_FULL_URL` (e.g., https://n8n.example.com/webhook/my-workflow)
 
 Or both of:
-- `N8N_WEBHOOK_BASE_URL` (e.g., https://n8n.example.com/webhook)
-- `N8N_WEBHOOK_PATH` (e.g., my-workflow)
+- `N8N_BASE_URL` (e.g., https://n8n.example.com/webhook)
+- `N8N_PATH` (e.g., my-workflow)
 
 Optional:
 - `N8N_SECRET` (shared secret added as header `x-n8n-secret`)

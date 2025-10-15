@@ -1,7 +1,7 @@
 {
   "name": "image-capt-generate",
   "version": "1.0.0",
-  "description": "Frontend + Express proxy to trigger n8n webhooks securely",
+  "description": "Frontend + Express proxy to trigger n8n securely",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -24,16 +24,61 @@ app.get('/health', (req, res) => {
 app.post('/api/forward-form', async (req, res) => {
   try {
     const target = process.env.FORM_ENDPOINT_URL || 'https://devstreams-agentic-apps.digital-lab.ai/form/1bc429ed-c5a2-4783-9dd8-40eaac8a59f1';
+    const encoding = String(req.query.encoding || process.env.FORM_ENCODING || 'form').toLowerCase(); // 'form' | 'json'
+    const formId = process.env.FORM_ID;
 
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(process.env.N8N_SECRET ? { 'x-n8n-secret': process.env.N8N_SECRET } : {}),
+    // Build body with variant keys to maximize capture on n8n Form node
+    const src = req.body || {};
+    const canonical = {
+      accountName: src.accountName,
+      category: src.category,
+      prompt: src.prompt,
+      submittedAt: src.submittedAt || new Date().toISOString(),
     };
+
+    let headers = { ...(process.env.N8N_SECRET ? { 'x-n8n-secret': process.env.N8N_SECRET } : {}) };
+    let bodyToSend;
+
+    if (encoding === 'json') {
+      headers['Content-Type'] = 'application/json';
+      bodyToSend = JSON.stringify({
+        ...canonical,
+        ...(formId ? { formId } : {}),
+        'Account Name': canonical.accountName,
+        'Category': canonical.category,
+        'Prompt': canonical.prompt,
+        account_name: canonical.accountName,
+        // include any extra keys
+        ...Object.fromEntries(Object.entries(src).filter(([k]) => !['accountName','category','prompt','submittedAt'].includes(k))),
+      });
+    } else {
+      const form = new URLSearchParams();
+      if (canonical.accountName) form.append('accountName', canonical.accountName);
+      if (canonical.category) form.append('category', canonical.category);
+      if (canonical.prompt) form.append('prompt', canonical.prompt);
+      if (canonical.accountName) form.append('Account Name', canonical.accountName);
+      if (canonical.category) form.append('Category', canonical.category);
+      if (canonical.prompt) form.append('Prompt', canonical.prompt);
+      if (canonical.accountName) form.append('account_name', canonical.accountName);
+      form.append('submittedAt', canonical.submittedAt);
+      if (formId) form.append('formId', formId);
+      Object.entries(src).forEach(([k, v]) => {
+        if (v === undefined || v === null) return;
+        if (!['accountName', 'category', 'prompt', 'Account Name', 'Category', 'Prompt', 'account_name', 'submittedAt', 'formId'].includes(k)) {
+          try { form.append(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (_) {}
+        }
+      });
+      headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+      bodyToSend = form.toString();
+      console.log('[form-proxy] Keys sent:', Array.from(form.keys()));
+    }
+
+    console.log('[form-proxy] Forwarding to:', target, '| encoding:', encoding);
 
     const resp = await fetch(target, {
       method: 'POST',
       headers,
-      body: JSON.stringify(req.body || {}),
+      body: bodyToSend,
     });
 
     const contentType = resp.headers.get('content-type') || '';
@@ -55,6 +100,7 @@ app.post('/api/forward-form', async (req, res) => {
   }
 });
 
+// (Removed stray code that was outside of any route handler)
 // Proxy endpoint to forward requests to n8n webhook
 app.post('/api/trigger-n8n', async (req, res) => {
   try {
@@ -69,14 +115,14 @@ app.post('/api/trigger-n8n', async (req, res) => {
     };
 
     // Support either base+path or full URL via env
-    const fullUrl = process.env.N8N_FULL_WEBHOOK_URL;
-    const base = process.env.N8N_WEBHOOK_BASE_URL;
-    const pathPart = process.env.N8N_WEBHOOK_PATH;
+    const fullUrl = process.env.N8N_FULL_URL;
+    const base = process.env.N8N_BASE_URL;
+    const pathPart = process.env.N8N_PATH;
 
     let n8nUrl = fullUrl || (base && pathPart ? `${base.replace(/\/$/, '')}/${String(pathPart).replace(/^\//, '')}` : null);
 
     if (!n8nUrl) {
-      console.error('Missing n8n configuration: set N8N_FULL_WEBHOOK_URL or N8N_WEBHOOK_BASE_URL + N8N_WEBHOOK_PATH');
+      console.error('Missing n8n configuration: set N8N_FULL_URL or N8N_BASE_URL + N8N_PATH');
       return res.status(500).json({ error: 'Server not configured for n8n' });
     }
 
