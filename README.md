@@ -31,7 +31,7 @@ Body (example):
 Server forwards this payload to the configured n8n webhook and returns n8n's response.
 
 ## Environment variables
-Set one of the following:
+Set one of the following (no hardcoded default in code):
 - `N8N_FULL_URL` (e.g., https://n8n.example.com/webhook/my-workflow)
 
 Or both of:
@@ -41,6 +41,8 @@ Or both of:
 Optional:
 - `N8N_SECRET` (shared secret added as header `x-n8n-secret`)
 - `PORT` (default 3000)
+
+You can start by copying `.env.example` to `.env` and filling in values.
 
 ## Run locally
 ```bash
