@@ -28,28 +28,18 @@ document.addEventListener('DOMContentLoaded', function () {
     status.innerHTML = '';
 
     try {
-      // Build payload (include multiple naming variants to help n8n Form mapping)
-      const base = { accountName, category };
-      if (prompt) base.prompt = prompt;
-
+      // Build payload for n8n webhook trigger
+      const fallbackPrompt = `Generate an image and caption for account "${accountName}" with theme "${category}".`;
       const requestData = {
-        // canonical
-        accountName: base.accountName,
-        category: base.category,
-        prompt: base.prompt,
-        // labels often used by n8n Form fields
-        'Account Name': base.accountName,
-        'Category': base.category,
-        'Prompt': base.prompt,
-        // fallbacks
-        account_name: base.accountName,
-        text: base.prompt,
-        message: base.prompt,
+        accountName: accountName,
+        category: category,
+        prompt: prompt || '',
+        chatInput: (prompt || '').trim() || fallbackPrompt,
         submittedAt: new Date().toISOString(),
       };
 
-      // Always send to our server which forwards to the n8n Form endpoint
-      const resp = await fetch('/api/forward-form', {
+      // Send to n8n webhook endpoint
+      const resp = await fetch('/api/trigger-n8n', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData),
@@ -62,14 +52,13 @@ document.addEventListener('DOMContentLoaded', function () {
       loading.classList.remove('show');
 
       if (!resp.ok || parsed?.ok === false) {
-        const errMsg = parsed?.error || parsed?.body || parsed || `HTTP ${resp.status}`;
+        const errMsg = parsed?.error || parsed?.n8nBody || parsed || `HTTP ${resp.status}`;
         throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
       }
 
-      const finalData = parsed?.body ?? parsed;
-      displayResults(finalData);
-      showStatus('Submitted to n8n Form successfully', 'success');
-      console.log('[n8n-form-debug] Sent payload variants:', requestData);
+      displayResults(parsed);
+      showStatus('Successfully submitted to n8n webhook', 'success');
+      // Quiet success path; use Raw Response block for details
     } catch (error) {
       console.error('Error:', error);
       loading.classList.remove('show');
@@ -80,12 +69,75 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   function displayResults(apiResponse) {
-  const html = `<div class="result-item">
-    <h3>n8n Form Response</h3>
+    const payload = normalizePayload(apiResponse);
+
+    const hasImage = typeof payload.image === 'string' && payload.image.length > 0;
+    const hasCaption = typeof payload.caption === 'string' && payload.caption.length > 0;
+
+    // Build display blocks
+    let blocks = '';
+
+    if (hasImage) {
+      const imgSrc = toRenderableImageSrc(payload.image);
+      if (imgSrc) {
+        blocks += `
+          <div class="result-item">
+            <h3>Generated Image</h3>
+            <img class="generated-image" src="${escapeHtml(imgSrc)}" alt="Generated" />
+          </div>
+        `;
+      } else {
+        blocks += `
+          <div class="result-item">
+            <h3>Generated Image</h3>
+            <div class="generated-caption">Received image value but it's not a URL or data URI. Value: ${escapeHtml(String(payload.image))}</div>
+          </div>
+        `;
+      }
+    }
+
+    if (hasCaption) {
+      blocks += `
+        <div class="result-item">
+          <h3>Generated Caption</h3>
+          <div class="generated-caption">${escapeHtml(payload.caption)}</div>
+        </div>
+      `;
+    }
+
+    // Always show the raw response as a fallback/debug
+    blocks += `
+      <div class="result-item">
+        <h3>Raw Response</h3>
         <pre style="white-space: pre-wrap">${escapeHtml(JSON.stringify(apiResponse, null, 2))}</pre>
-      </div>`;
-    resultsContent.innerHTML = html;
+      </div>
+    `;
+
+    resultsContent.innerHTML = blocks;
     results.classList.add('show');
+  }
+
+  function normalizePayload(apiResponse) {
+    try {
+      // If shape is { ok, n8nStatus, n8nBody }
+      const body = apiResponse?.n8nBody ?? apiResponse?.body ?? apiResponse;
+      if (typeof body === 'string') {
+        try { return JSON.parse(body); } catch { return { message: body }; }
+      }
+      if (body && typeof body === 'object') return body;
+    } catch (_) {}
+    return {};
+  }
+
+  function toRenderableImageSrc(value) {
+    if (typeof value !== 'string') return null;
+    const v = value.trim();
+    if (!v) return null;
+    // Accept http/https URLs
+    if (/^https?:\/\//i.test(v)) return v;
+    // Accept data URIs
+    if (/^data:image\//i.test(v)) return v;
+    return null;
   }
 
   function showStatus(message, type) {
