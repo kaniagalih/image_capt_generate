@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image & Caption Generator - Cyber Army</title>
+    <title>Image generation</title>
     <style>
         * {
             margin: 0;
@@ -28,20 +28,19 @@
         }
         
         .header {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
+            color: #111827;
             padding: 30px;
             text-align: center;
         }
         
         .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+            font-size: 1.6rem;
+            margin-bottom: 6px;
         }
         
         .header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
+            opacity: 0.8;
+            font-size: 0.95rem;
         }
         
         .content {
@@ -79,7 +78,7 @@
         }
         
         .btn {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
             color: white;
             padding: 14px 28px;
             border: none;
@@ -178,35 +177,14 @@
             color: #991b1b;
             border: 1px solid #fca5a5;
         }
-        
-        .webhook-info {
-            background: #eff6ff;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            border-left: 4px solid #3b82f6;
-        }
-        
-        .webhook-info h3 {
-            color: #1e40af;
-            margin-bottom: 10px;
-        }
-        
-        .webhook-url {
-            font-family: monospace;
-            background: #f1f5f9;
-            padding: 10px;
-            border-radius: 4px;
-            word-break: break-all;
-            font-size: 14px;
-        }
+            
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎨 Cyber Army</h1>
-            <p>Image & Caption Generator</p>
+            <h1>Image generation</h1>
+            <p>This form will allow you to generate images</p>
         </div>
         
         <div class="content">
@@ -239,7 +217,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="prompt">Prompt:</label>
+                    <label for="prompt">Prompt</label>
                     <textarea id="prompt" placeholder="Input your prompt or image idea"></textarea>
                 </div>
                 
